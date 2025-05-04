@@ -12,6 +12,7 @@ class VocabularyContainer:
     input_vocab: ToStringVocabulary
     output_vocab: ToStringVocabulary
 
+
 def add_data_arguments(parser, validation=True):
     group = parser.add_argument_group('Dataset options')
     group.add_argument('--training-data', type=pathlib.Path,
@@ -35,6 +36,9 @@ def add_data_arguments(parser, validation=True):
     group.add_argument('--vocabulary-file', type=pathlib.Path,
         help='A .vocab file containing the token vocabulary. This overrides '
              '--training-data.')
+    group.add_argument('--automaton', type=pathlib.Path, 
+        help="An automaton to train against with KL")
+
 
 def get_training_data_file_path(args, parser):
     if args.training_data_file is not None:
