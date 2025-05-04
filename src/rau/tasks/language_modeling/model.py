@@ -137,10 +137,10 @@ class LanguageModelingModelInterface(ModelInterface):
                     output_size=hidden_units,
                     use_padding=False,
                     shared_embeddings=shared_embeddings
-                ) @
-                DropoutUnidirectional(dropout) @
-                core.main() @
-                DropoutUnidirectional(dropout) @
+                ) |
+                DropoutUnidirectional(dropout) |
+                core.main() |
+                DropoutUnidirectional(dropout) |
                 OutputUnidirectional(
                     input_size=hidden_units,
                     vocabulary_size=output_vocabulary_size,
