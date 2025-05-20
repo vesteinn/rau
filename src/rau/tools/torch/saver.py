@@ -3,6 +3,10 @@ import contextlib
 import json
 import os
 import pickle
+import os
+import errno
+import time
+import random
 
 import torch
 
@@ -15,6 +19,29 @@ LOGS_DIR = 'logs'
 DEFAULT_PARAMETER_FILE = 'main'
 DEFAULT_LOG_FILE = 'main.log'
 DEFAULT_METADATA_NAME = 'main'
+
+
+def makedirs_safe(path, exist_ok=True, max_retries=5):
+    for attempt in range(max_retries):
+        try:
+            os.makedirs(path, exist_ok=exist_ok)
+            return
+        except FileExistsError:
+            # If exist_ok is True and it's a race on the final dir, this is fine
+            if exist_ok and os.path.isdir(path):
+                return
+            raise
+        except OSError as e:
+            # Retry on known race condition error
+            if e.errno == errno.EEXIST and os.path.isdir(path):
+                return
+            if e.errno == errno.ENOENT:
+                # A parent directory was missing when we tried to create a child
+                time.sleep(random.uniform(0.01, 0.1))  # backoff jitter
+                continue
+            raise
+    raise RuntimeError(f"Failed to create directory {path} after {max_retries} retries")
+
 
 def construct_saver(model_constructor, directory_name, **kwargs):
     model = model_constructor(**kwargs)
@@ -152,11 +179,16 @@ class ModelSaver:
 
     def ensure_output_dir_created(self):
         if not self.created_output_dir:
-            try:
-                os.makedirs(self.directory_name)
-            except FileExistsError:
-                raise DirectoryExists('the directory %s already exists' % self.directory_name)
+            makedirs_safe(self.directory_name, exist_ok=True, max_retries=15)
             self.created_output_dir = True
+
+    # def ensure_output_dir_created(self):
+    #     if not self.created_output_dir:
+    #         try:
+    #             os.makedirs(self.directory_name)
+    #         except FileExistsError:
+    #             raise DirectoryExists('the directory %s already exists' % self.directory_name)
+    #         self.created_output_dir = True
 
     def ensure_kwargs_file_written(self):
         if not self.saved_kwargs:
